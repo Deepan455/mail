@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelector('#archived').addEventListener('click', () => load_mailbox('archive'));
   document.querySelector('#compose').addEventListener('click', compose_email);
   document.querySelector('#submit').addEventListener('click', send_mail);
-
+  
   // By default, load the inbox
   load_mailbox('inbox');
 });
@@ -44,8 +44,12 @@ function load_mailbox(mailbox) {
       element.style.border="1px solid black";
       element.innerHTML=`${emails[i].sender} &nbsp; ${emails[i].subject} &nbsp; ${emails[i].timestamp}`;
       element.className="emails";
+      if (emails[i].read === true)
+      {
+        element.style.background = 'grey';
+      }
       element.addEventListener('click',function(){
-        open_message(emails[i].id);
+        open_message(emails[i].id,mailbox);
       });
       document.querySelector('#emails-view').append(element);
     }
@@ -56,7 +60,7 @@ function send_mail(){
   //Taking inputs
   let recipients = document.querySelector('#compose-recipients').value;
   let subject = document.querySelector('#compose-subject').value;
-  let body = document.querySelector('#compose-subject').value;
+  let body = document.querySelector('#compose-body').value;
 
   // To make api request
   fetch('/emails',{
@@ -83,36 +87,120 @@ function send_mail(){
   return false;
 }
 
-function open_message(id)
+function open_message(id,mailbox)
 {
   document.querySelector('#emails-view').style.display='none';
   document.querySelector('#compose-view').style.display='none';
   document.querySelector('#message-view').style.display='block';
   
+  fetch(`/emails/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+        read : true
+    })
+  })
 
   fetch(`/emails/${id}`)
   .then(response=>response.json())
   .then(email=>{
-    let templateScript= Handlebars.compile(" Sender: {{sender}} <br> Recipients: {{recipients}} <br> subject: {{subject}} <br> {{timestamp}} <br> Content <br> {{body}} <br> <br>");
+    document.querySelector('#message-view').innerHTML="";
+    let templateScript= Handlebars.compile(" Sender: {{sender}} <br> Recipients: {{recipients}} <br> subject: {{subject}} <br> {{timestamp}}<br> Content <div id=\"message_body\">{{body}}</div><br> ");
     let info = {"sender":email.sender, "recipients":email.recipients, "subject":email.subject, "timestamp":email.timestamp, "body":email.body};
-    document.querySelector('#message-view').innerHTML= templateScript(info);
+    document.querySelector('#message-view').innerHTML=templateScript(info);
 
 
-    let archive=document.createElement('button');
-    archive.innerHTML = "archive";
-    archive.className = "archive";
+    // Arcive/Unarchive button creation
+    if(mailbox === "inbox" || mailbox === "archive")
+    {
+      var archive=document.createElement('button');
+      archive.style.border="1px solid black";
+      archive.className = "archive";
 
-    let reply = document.createElement('button');
+      if (email.archived === false){
+        archive.innerHTML = "archive";
+        archive.addEventListener('click',()=>{archive_mail(email.id)});
+      }
+      else{
+        archive.innerHTML = "unarchive";
+        archive.addEventListener('click',()=>{unarchive_mail(email.id)});
+      }
+
+      document.querySelector('#message-view').append(archive,"  ");
+    }
+
+    const reply = document.createElement('button');
+    reply.style.border="1px solid black";
     reply.innerHTML = "reply";
     reply.className = "reply";
-    reply.addEventListener('keyup',archive_mail(email.id));
+    reply.addEventListener('click',()=>{msg_reply(email.sender,email.subject,email.timestamp,email.body)});
+    document.querySelector('#message-view').append(reply);
 
-    document.querySelector('#message-view').append(reply)
+    const mark = document.createElement('button');
+    mark.style.border="1px solid black";
+    mark.innerHTML = "Mark as Unread";
+    mark.className = "mark";
+    mark.addEventListener('click',()=>{mark_unread(email.id)});
+    document.querySelector('#message-view').append(mark);
+
   })
 }
 
 //To archive a message
 
 function archive_mail(id){
-  alert(id);  
+  fetch(`/emails/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+        archived: true
+    })
+  })
+  setTimeout(()=>load_mailbox('inbox'),600);  //To display inbox after a certain Interval
+}
+
+function unarchive_mail(id){
+  fetch(`/emails/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+        archived: false
+    })
+  })
+  setTimeout(()=>load_mailbox('inbox'),600);  //To display inbox after a certain Interval
+}
+
+function msg_reply(sender,subject,date,body){
+  // Show compose view and hide other views
+  document.querySelector('#emails-view').style.display = 'none';
+  document.querySelector('#message-view').style.display = 'none';
+  document.querySelector('#compose-view').style.display = 'block';
+
+  // Clear out composition fields
+  document.querySelector('#compose-recipients').value = sender;
+  if(subject.includes('Re:'))
+  {
+    document.querySelector('#compose-subject').value = subject;
+  }
+  else
+  {
+    document.querySelector('#compose-subject').value = 'Re: '+subject;
+  }
+  document.querySelector('#compose-body').value = `On ${date} ${sender} wrote: ${body}`;
+}
+
+function mark_read(id){
+  fetch(`/emails/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+        read : true
+    })
+  })
+}
+
+function mark_unread(id){
+  fetch(`/emails/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+        read : false
+    })
+  })
+  setTimeout(()=>load_mailbox('inbox'),600);  //To display inbox after a certain Interval
 }
