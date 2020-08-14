@@ -31,7 +31,7 @@ function load_mailbox(mailbox) {
   document.querySelector('#compose-view').style.display = 'none';
 
   // Show the mailbox name
-  document.querySelector('#emails-view').innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
+  document.querySelector('#emails-view').innerHTML = `<h3 id=\"mail_name"\>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
 
   // To make api request for mails in respective category
   fetch(`/emails/${mailbox}`)
@@ -41,12 +41,11 @@ function load_mailbox(mailbox) {
     for(let i=0;i<=emails.length-1;i++)
     {
       const element= document.createElement('div');
-      element.style.border="1px solid black";
-      element.innerHTML=`${emails[i].sender} &nbsp; ${emails[i].subject} &nbsp; ${emails[i].timestamp}`;
+      element.innerHTML=`<strong>${emails[i].sender}</strong> &nbsp; &nbsp; ${emails[i].subject} &nbsp;<br><small> ${emails[i].timestamp}</small>`;
       element.className="emails";
-      if (emails[i].read === true)
+      if (emails[i].read === true || mailbox === 'sent')
       {
-        element.style.background = 'grey';
+        element.style.background = '#ddd';
       }
       element.addEventListener('click',function(){
         open_message(emails[i].id,mailbox);
@@ -93,18 +92,21 @@ function open_message(id,mailbox)
   document.querySelector('#compose-view').style.display='none';
   document.querySelector('#message-view').style.display='block';
   
-  fetch(`/emails/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify({
-        read : true
+  if(mailbox === "inbox" || mailbox === "archive")
+  {
+    fetch(`/emails/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+          read : true
+      })
     })
-  })
+  }
 
   fetch(`/emails/${id}`)
   .then(response=>response.json())
   .then(email=>{
     document.querySelector('#message-view').innerHTML="";
-    let templateScript= Handlebars.compile(" Sender: {{sender}} <br> Recipients: {{recipients}} <br> subject: {{subject}} <br> {{timestamp}}<br> Content <div id=\"message_body\">{{body}}</div><br> ");
+    let templateScript= Handlebars.compile(" <strong>From:</strong><div> {{sender}}</div> <strong>To:&emsp;</strong><div> {{recipients}}</div><div><strong>subject:&emsp;</strong>{{subject}}</div><div><strong>Sent on:&emsp;</strong>{{timestamp}}</div><div id=\"message_body\">{{body}}</div><br> ");
     let info = {"sender":email.sender, "recipients":email.recipients, "subject":email.subject, "timestamp":email.timestamp, "body":email.body};
     document.querySelector('#message-view').innerHTML=templateScript(info);
 
@@ -126,21 +128,22 @@ function open_message(id,mailbox)
       }
 
       document.querySelector('#message-view').append(archive,"  ");
+
+      const mark = document.createElement('button');
+      mark.style.border="1px solid black";
+      mark.innerHTML = "Mark as Unread";
+      mark.className = "mark";
+      mark.addEventListener('click',()=>{mark_unread(email.id)});
+      document.querySelector('#message-view').append(mark);
     }
 
+    // Reply button
     const reply = document.createElement('button');
     reply.style.border="1px solid black";
     reply.innerHTML = "reply";
     reply.className = "reply";
     reply.addEventListener('click',()=>{msg_reply(email.sender,email.subject,email.timestamp,email.body)});
     document.querySelector('#message-view').append(reply);
-
-    const mark = document.createElement('button');
-    mark.style.border="1px solid black";
-    mark.innerHTML = "Mark as Unread";
-    mark.className = "mark";
-    mark.addEventListener('click',()=>{mark_unread(email.id)});
-    document.querySelector('#message-view').append(mark);
 
   })
 }

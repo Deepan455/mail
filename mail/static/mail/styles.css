@@ -2,8 +2,39 @@ textarea {
     min-height: 400px;
 }
 
+#user{
+    float:right;
+    margin-top: 15px;
+    font-size: 1.5em;
+}
+
+#logo{
+    display: inline-flex;
+    margin: 10px;
+    font-size: 2em;
+    border: 1px solid black;
+    padding: 5px;
+}
+
+.btn{
+    margin:10px;
+    transform: scale(1.25);
+}
+
+.btn:hover{  
+    transform: scale(1.35);
+}
+
 .emails{
     margin:10px;
+    padding:10px;
+    border: 1px solid grey;
+    border-radius: 8px;
+}
+
+.emails:hover{
+    box-shadow: -5px -5px 10px grey, 5px 5px 10px #eee;
+    cursor: pointer;
 }
 
 .reply{
@@ -12,4 +43,47 @@ textarea {
 
 .archive{
     margin:5px;
+}
+
+.msg_list{
+    
+}
+
+#mail_name{
+    display:flex;
+    justify-content: center;
+}
+
+#message-view{
+    
+}
+
+#message-view div{
+    border: 1px solid black;
+    margin: 5px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    padding: 5px;
+}
+
+#message-view div:nth-child(7)
+{
+    min-height: 250px;
+    align-items: initial;
+    padding: 10px;
+}
+
+#message-view button{
+    height: 50px;
+    padding: 10px;
+    border-radius: 10px;
+    color: teal;
+    background: white;
+}
+
+#message-view button:hover{
+    color: white;
+    background: teal;
+    border-color: white;
 }
